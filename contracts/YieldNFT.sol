@@ -6,8 +6,12 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ProgrammableTokenTransfers} from "./CCIPSender.sol";
+import "../utils/Base64.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract ETHGLobalHack is ERC1155, Ownable, ERC1155Burnable {
+    using Strings for uint256;
+
     ProgrammableTokenTransfers public chainlinkSender;
 
     // Mapping to keep track of supported ERC20 tokens
@@ -15,6 +19,16 @@ contract ETHGLobalHack is ERC1155, Ownable, ERC1155Burnable {
 
     // Prices for minting an NFT in different tokens
     mapping(address => uint256) public mintPrices;
+
+    struct Strategy {
+        address inputAsset;
+        address[] outputAssets;
+        uint256[] outputAmounts;
+        uint8 protocol; // 0 - AaveV3, 1 - CompoundV3
+        address onBehalfOf;
+    }
+
+    mapping(uint256 => Strategy) public strategies; // tokenId => Strategy
 
     constructor(address payable _chainlinkSender) ERC1155("https://example.com") Ownable() {
         // Initialize accepted tokens
@@ -67,5 +81,101 @@ contract ETHGLobalHack is ERC1155, Ownable, ERC1155Burnable {
 
     function setMintPrice(address tokenAddress, uint256 price) external onlyOwner {
         mintPrices[tokenAddress] = price;
+    }
+
+    function constructAttributes(uint256 tokenId) internal view returns (string memory attributes) {
+        Strategy memory strategy = strategies[tokenId];
+
+        attributes = string(
+            abi.encodePacked(
+                '[{"trait_type":"Protocol","value":"',
+                strategy.protocol == 0 ? "AaveV3" : "CompoundV3",
+                '"},',
+                '{"trait_type":"Input Asset","value":"',
+                strategy.inputAsset,
+                '"},',
+                '{"trait_type":"Output Asset 1","value":"',
+                strategy.outputAssets[0],
+                '"},',
+                '{"trait_type":"Output Asset 2","value":"',
+                strategy.outputAssets[1],
+                '"},',
+                // If output asset 3 is not set, then we don't show it
+                strategy.outputAssets.length > 2
+                    ? string(abi.encodePacked('{"trait_type":"Output Asset 3","value":"', strategy.outputAssets[2], '"},'))
+                    : "",
+                '{"trait_type":"Output Amount 1","value":"',
+                strategy.outputAmounts[0].toString(),
+                '"},',
+                // If output amount 3 is not set, then we don't show it
+                strategy.outputAmounts.length > 1
+                    ? string(
+                        abi.encodePacked(
+                            '{"trait_type":"Output Amount 3","value":"', strategy.outputAmounts[3].toString(), '"},'
+                        )
+                    )
+                    : "",
+                '{"trait_type":"Output Amount 2","value":"',
+                strategy.outputAmounts[1].toString(),
+                '"}]'
+            )
+        );
+    }
+
+    //Finds an image for the player based on the player class
+    function findImageBasedOnTokenId(uint256 tokenId) internal pure returns (string memory) {
+        string memory image;
+
+        if (tokenId == 0) {
+            image = "https://gateway.ipfs.io/1";
+        } else if (tokenId == 1) {
+            image = "https://gateway.ipfs.io/2";
+        } else if (tokenId == 2) {
+            image = "https://gateway.ipfs.io/3";
+        } else if (tokenId == 3) {
+            image = "https://gateway.ipfs.io/4";
+        } else if (tokenId == 4) {
+            image = "https://gateway.ipfs.io/5";
+        } else if (tokenId == 5) {
+            image = "https://gateway.ipfs.io/6";
+        } else if (tokenId == 6) {
+            image = "https://gateway.ipfs.io/7";
+        }
+
+        return image;
+    }
+
+    /**
+     * @dev See {IERC721Metadata-tokenURI}.
+     */
+    // Bypass for a `--via-ir` bug (https://github.com/chiru-labs/ERC721A/pull/364).
+    function tokenURI(uint256 tokenId) public view virtual returns (string memory) {
+        string memory attributes = constructAttributes(tokenId);
+        string memory base = "data:application/json;base64,";
+        string memory image = findImageBasedOnTokenId(tokenId);
+
+        string memory baseName = "Yield NFT";
+        string memory fullName = string(abi.encodePacked(baseName, tokenId.toString()));
+
+        string memory json = Base64.encode(
+            bytes(
+                string(
+                    abi.encodePacked('{"name":', fullName, '", "attributes":', attributes, ', "image":"', image, '"}')
+                )
+            )
+        );
+
+        return string(abi.encodePacked(base, json));
+    }
+
+    function setStrategy(
+        uint256 tokenId,
+        address inputAsset,
+        address[] memory outputAssets,
+        uint256[] memory outputAmounts,
+        uint8 protocol,
+        address onBehalfOf
+    ) external onlyOwner {
+        strategies[tokenId] = Strategy(inputAsset, outputAssets, outputAmounts, protocol, onBehalfOf);
     }
 }
