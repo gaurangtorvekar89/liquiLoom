@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ProgrammableTokenTransfers} from "./CCIPSender.sol";
+import {ProgrammableTokenTransfers} from "./ChainlinkCCIPSender.sol";
 import "../utils/Base64.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
@@ -64,13 +64,13 @@ contract ETHGLobalHack is ERC1155, Ownable, ERC1155Burnable {
         uint256 tokenAmount = mintPrices[tokenAddress];
 
         IERC20 token = IERC20(tokenAddress);
-        require(token.transferFrom(msg.sender, address(chainlinkSender), tokenAmount), "ETHOnlineHack: Transfer failed");
+        // require(token.transferFrom(msg.sender, address(chainlinkSender), tokenAmount), "ETHOnlineHack: Transfer failed");
 
         // Ensure that the ChainlinkSender contract has the necessary allowances to spend the tokens.
-        token.approve(address(chainlinkSender), tokenAmount);
+        // token.approve(address(chainlinkSender), tokenAmount);
 
         // Calling sendMessagePayLINK function from ChainlinkSender contract
-        chainlinkSender.sendMessagePayLINK(destinationChainSelector, receiver, text, address(token), amount);
+        // chainlinkSender.sendMessagePayLINK(destinationChainSelector, receiver, text, address(token), amount);
 
         _mint(account, id, amount, data);
     }
@@ -97,27 +97,9 @@ contract ETHGLobalHack is ERC1155, Ownable, ERC1155Burnable {
                 '{"trait_type":"Output Asset 1","value":"',
                 strategy.outputAssets[0],
                 '"},',
-                '{"trait_type":"Output Asset 2","value":"',
-                strategy.outputAssets[1],
-                '"},',
-                // If output asset 3 is not set, then we don't show it
-                strategy.outputAssets.length > 2
-                    ? string(abi.encodePacked('{"trait_type":"Output Asset 3","value":"', strategy.outputAssets[2], '"},'))
-                    : "",
                 '{"trait_type":"Output Amount 1","value":"',
                 strategy.outputAmounts[0].toString(),
-                '"},',
-                // If output amount 3 is not set, then we don't show it
-                strategy.outputAmounts.length > 1
-                    ? string(
-                        abi.encodePacked(
-                            '{"trait_type":"Output Amount 3","value":"', strategy.outputAmounts[3].toString(), '"},'
-                        )
-                    )
-                    : "",
-                '{"trait_type":"Output Amount 2","value":"',
-                strategy.outputAmounts[1].toString(),
-                '"}]'
+                '"},'
             )
         );
     }

@@ -14,3 +14,7 @@ artifacts
 /client/.env
 /client/.next
 /client/.vercel
+
+utils/aave-v3-core/
+utils/aave-v3-periphery/
+compiler_config.json
