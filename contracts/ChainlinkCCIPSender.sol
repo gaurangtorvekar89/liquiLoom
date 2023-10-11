@@ -10,7 +10,6 @@ import {LinkTokenInterface} from "@chainlink/contracts/src/v0.8/shared/interface
 
 /// @title - A simple messenger contract for transferring/receiving tokens and data across chains.
 contract ProgrammableTokenTransfers is CCIPReceiver, OwnerIsCreator {
-    // Custom errors to provide more descriptive revert messages.
     error NotEnoughBalance(uint256 currentBalance, uint256 calculatedFees); // Used to make sure contract has enough balance to cover the fees.
     error NothingToWithdraw(); // Used when trying to withdraw Ether but there's nothing to withdraw.
     error FailedToWithdrawEth(address owner, address target, uint256 value); // Used when the withdrawal of Ether fails.
@@ -141,6 +140,30 @@ contract ProgrammableTokenTransfers is CCIPReceiver, OwnerIsCreator {
     function denySender(address _sender) external onlyOwner {
         whitelistedSenders[_sender] = false;
     }
+
+    // Reference Note - these are the structs used in the CCIP Client.sol library. They are included here for reference.
+
+    // struct EVMTokenAmount {
+    //     address token; // token address on the local chain.
+    //     uint256 amount; // Amount of tokens.
+    // }
+
+    // struct Any2EVMMessage {
+    //     bytes32 messageId; // MessageId corresponding to ccipSend on source.
+    //     uint64 sourceChainSelector; // Source chain selector.
+    //     bytes sender; // abi.decode(sender) if coming from an EVM chain.
+    //     bytes data; // payload sent in original message.
+    //     EVMTokenAmount[] destTokenAmounts; // Tokens and their amounts in their destination chain representation.
+    // }
+
+    // // If extraArgs is empty bytes, the default is 200k gas limit and strict = false.
+    // struct EVM2AnyMessage {
+    //     bytes receiver; // abi.encode(receiver address) for dest EVM chains
+    //     bytes data; // Data payload
+    //     EVMTokenAmount[] tokenAmounts; // Token transfers
+    //     address feeToken; // Address of feeToken. address(0) means you will send msg.value.
+    //     bytes extraArgs; // Populate this with _argsToBytes(EVMExtraArgsV1)
+    // }
 
     /// @notice Sends data and transfer tokens to receiver on the destination chain.
     /// @notice Pay for fees in LINK.
